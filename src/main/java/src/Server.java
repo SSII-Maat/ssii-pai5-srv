@@ -1,19 +1,32 @@
 package src;
 
+import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-import org.sqlite.*;
+import javax.crypto.spec.SecretKeySpec;
 
-import com.sun.xml.internal.messaging.saaj.util.Base64;
+import com.sun.xml.messaging.saaj.util.Base64;
+
+import org.sqlite.*;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -24,14 +37,39 @@ import src.utils.GenericSocket.GenericSocketException;
 
 public class Server implements Runnable {
 
-  @SuppressWarnings("unchecked")
-@Override
+    private static final String certificate = "-----BEGIN CERTIFICATE-----\n"+
+    "MIICeTCCAeKgAwIBAgIJANPLhubuNn8LMA0GCSqGSIb3DQEBCwUAMFQxCzAJBgNV\n"+
+    "BAYTAkVTMRAwDgYDVQQIDAdTZXZpbGxlMRAwDgYDVQQHDAdTZXZpbGxlMSEwHwYD\n"+
+    "VQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwHhcNMTgwNTE4MTk0NjI4WhcN\n"+
+    "MTkwNTE4MTk0NjI4WjBUMQswCQYDVQQGEwJFUzEQMA4GA1UECAwHU2V2aWxsZTEQ\n"+
+    "MA4GA1UEBwwHU2V2aWxsZTEhMB8GA1UECgwYSW50ZXJuZXQgV2lkZ2l0cyBQdHkg\n"+
+    "THRkMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCtFAZRQ+VOW4btawS42C6Q\n"+
+    "FP3BNu4om6/IBrP0i5TFmaBKzlDKE2+JuJWbP0PQur/+4tG71GUDfy1Ot+n3M4Hl\n"+
+    "cHvQ0/1wmtBU3F29kf6ObcJdk3cOghXzbP5eHvMoIbFNqHzpugjT6Ym7gp9E4WmY\n"+
+    "clP8wh2OXe7Ebc8PqOziawIDAQABo1MwUTAdBgNVHQ4EFgQUyLUTCVsvomMS/LVL\n"+
+    "nfSK8nXTRNMwHwYDVR0jBBgwFoAUyLUTCVsvomMS/LVLnfSK8nXTRNMwDwYDVR0T\n"+
+    "AQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOBgQCZqshStHWxenz30S655ANn5Scd\n"+
+    "TfFR/tDRnpXkKSvZn1ys0iLgMZJRncN1o0Za2O9GeyYX5G4OVlP/4Zt2l4OkKNNs\n"+
+    "l8gh2cW7r0zx1TynHTHuSWkEjQXJYTO1UKG4lFPIcPsKshtX4Pmgd22MVtAMxwHm\n"+
+    "dwBeo2gqq4zCrFcnRA==\n"+
+    "-----END CERTIFICATE-----";
+    private static PublicKey publicKey;
+
+    @SuppressWarnings("unchecked")
+    @Override
 	public void run() {
         // Ejecución del servidor
         ServerSocketImpl serverSocket = null;
         Main.log.debug("Inicio de servidor");
         try {
-            serverSocket = new ServerSocketImpl(8080);
+            CertificateFactory certFact = CertificateFactory.getInstance("X.509");
+            X509Certificate cert = (X509Certificate) certFact.generateCertificate(new ByteArrayInputStream(certificate.getBytes(StandardCharsets.UTF_8)));
+            publicKey = cert.getPublicKey();
+        } catch(CertificateException ce) {
+            ce.printStackTrace();
+        }
+        try {
+            serverSocket = new ServerSocketImpl(4430);
             
             while(true) {
                 serverSocket.awaitConnection();
@@ -39,18 +77,13 @@ public class Server implements Runnable {
                 // Poner aqui restricciones necesarias
                 
                 JSONArray data = (JSONArray) message.get("data");
-                Signature signature = (Signature) message.get("signature");
-                String publicKeyEnc = (String) message.get("publicKey");
+                String signatureString = (String) message.get("signature");
+                byte[] signature = Base64.base64Decode(signatureString).getBytes(); // Es necesario hacer el replace porque se introducen caracteres extraños
                 
-                System.out.println(data);
-                System.out.println(signature);
-                System.out.println(publicKeyEnc);
-                
-                Signature sigVer = Signature.getInstance("SHA256withRSA","SC");
-                String publicKeyString = Base64.base64Decode(publicKeyEnc);
-                PublicKey publicKey = PublicKey.class.cast(publicKeyString);
+                Signature sigVer = Signature.getInstance("SHA256withRSA");
                 sigVer.initVerify(publicKey);
-                Boolean flag1 = sigVer.verify(signature.toString().getBytes());
+                sigVer.update(data.toString().getBytes());
+                Boolean flag1 = sigVer.verify(signature);
                 
                 //Comprobamos los datos introducidos
                 Boolean mayorQueCero = false;
@@ -93,11 +126,11 @@ public class Server implements Runnable {
                 if(flag1 && valido && mayorQueCero){
                 	result.put("status", "Success");
                 	connect();
-                	result.put("s�banas", (int) data.get(0));
+                	result.put("sabanas", (int) data.get(0));
                 	result.put("camas", (int) data.get(1));
                 	result.put("mesas", (int) data.get(2));
                 	result.put("sillas", (int) data.get(3));
-                	result.put("minibar", (int) data.get(4));
+                	result.put("sillones", (int) data.get(4));
                 	String saveResult = result.toString();
                 	insertData(saveResult);
                 	
@@ -112,9 +145,6 @@ public class Server implements Runnable {
         } catch(GenericSocketException gse) {
             gse.printStackTrace();
         } catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchProviderException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InvalidKeyException e) {
