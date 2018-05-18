@@ -27,7 +27,7 @@ public class Server implements Runnable {
   @SuppressWarnings("unchecked")
 @Override
 	public void run() {
-        // EjecuciÃ³n del servidor
+        // Ejecución del servidor
         ServerSocketImpl serverSocket = null;
         Main.log.debug("Inicio de servidor");
         try {
@@ -83,31 +83,33 @@ public class Server implements Runnable {
                 
                 // ...
                 // y guardado en BD
+                insertData((int) data.get(0),(int) data.get(1),(int) data.get(2),(int) data.get(3),(int) data.get(4));
                 // ...
-                // Si todo sale bien, enviar esto:
-                JSONObject result = new JSONObject();
-                
-                //Si hay algun valor mayor que cero, si todos los valores estan entre 0 y 300 y si la firma es
-                //correcta, entonces se guarda un success. Si no, se guarda un Incorrect, o lo que sea
-                
-                if(flag1 && valido && mayorQueCero){
-                	result.put("status", "Success");
-                	connect();
-                	result.put("sábanas", (int) data.get(0));
-                	result.put("camas", (int) data.get(1));
-                	result.put("mesas", (int) data.get(2));
-                	result.put("sillas", (int) data.get(3));
-                	result.put("minibar", (int) data.get(4));
-                	String saveResult = result.toString();
-                	insertData(saveResult);
-                	
-                }else{
-                	
-                	result.put("status", "Failure");	
-                }
-                System.out.println(result.toJSONString());
-                serverSocket.writeLineToSocket(result.toJSONString());
-                serverSocket.closeClientSocket();
+
+//                // Si todo sale bien, enviar esto:
+//                JSONObject result = new JSONObject();
+//
+//                //Si hay algun valor mayor que cero, si todos los valores estan entre 0 y 300 y si la firma es
+//                //correcta, entonces se guarda un success. Si no, se guarda un Incorrect, o lo que sea
+//
+//                if(flag1 && valido && mayorQueCero){
+//                	result.put("status", "Success");
+//                	connect();
+//                	result.put("s?banas", (int) data.get(0));
+//                	result.put("camas", (int) data.get(1));
+//                	result.put("mesas", (int) data.get(2));
+//                	result.put("sillas", (int) data.get(3));
+//                	result.put("minibar", (int) data.get(4));
+//                	String saveResult = result.toString();
+//                	insertData(saveResult);
+//
+//                }else{
+//
+//                	result.put("status", "Failure");
+//                }
+//                System.out.println(result.toJSONString());
+//                serverSocket.writeLineToSocket(result.toJSONString());
+//                serverSocket.closeClientSocket();
             }
         } catch(GenericSocketException gse) {
             gse.printStackTrace();
@@ -137,7 +139,7 @@ public class Server implements Runnable {
 
   private static Connection connect() {
       // SQLite connection string
-      String url = "jdbc:sqlite:C://sqlite/db/AndroidRequestServer.db";
+      String url = "jdbc:sqlite:database.sqlite";
       Connection conn = null;
       try {
           conn = DriverManager.getConnection(url);
@@ -147,12 +149,13 @@ public class Server implements Runnable {
       return conn;
   }
   
-  public void insertData(String name) {
-      String sql = "INSERT INTO resources(json) VALUES(?,?)";
-
+  public void insertData(int sabanas, int camas, int mesas,int sillas, int minibar ) {
+      String sql ="INSERT INTO COMPANY (sabanas,camas,mesas,sillas,minibar)\n" +
+                "VALUES ("+String.valueOf(sabanas)+","+String.valueOf(camas)+","+String.valueOf(mesas)+","
+              +String.valueOf(sillas)+","+String.valueOf(minibar)+")";
       try (Connection conn = Server.connect();
               PreparedStatement pstmt = conn.prepareStatement(sql)) {
-          pstmt.setString(1, name);
+
           pstmt.executeUpdate();
       } catch (SQLException e) {
           System.out.println(e.getMessage());
