@@ -74,7 +74,7 @@ public class ServerSocketImpl extends GenericSocketImpl {
         }
         
         // Quitamos el header
-        String body = message.substring(message.indexOf("{"), message.indexOf("}")+1);
+        String body = message.substring(message.indexOf("{"), message.lastIndexOf("}") + 1);
         // Obteniendo el mensaje y lo adaptamos a JSON
         try {
             result = (JSONObject) new JSONParser().parse(body);
