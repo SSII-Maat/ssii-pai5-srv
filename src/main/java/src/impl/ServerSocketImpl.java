@@ -48,6 +48,14 @@ public class ServerSocketImpl extends GenericSocketImpl {
         }
     }
 
+    public void awaitResponse() throws GenericSocketException {
+        try {
+            this.inputStream.read();
+        } catch(IOException ioe) {
+            throw new GenericSocketException("Failed to receive message");
+        }
+    }
+
     public JSONObject readLineFromSocket() throws GenericSocketException {
         JSONObject result = new JSONObject();
 

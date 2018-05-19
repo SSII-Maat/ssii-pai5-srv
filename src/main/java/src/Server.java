@@ -30,7 +30,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import src.impl.ServerSocketImpl;
-
+import src.utils.kpi;
 import src.utils.GenericSocket.GenericSocketException;
 
 public class Server implements Runnable {
@@ -113,29 +113,28 @@ public class Server implements Runnable {
                     }
                 }
 
-                // Si todo sale bien, enviar esto:
-                JSONObject result = new JSONObject();
-
-                // Si hay algun valor mayor que cero, si todos los valores estan entre 0 y 300 y
-                // si la firma es
-                // correcta, entonces se guarda un success. Si no, se guarda un Incorrect, o lo
-                // que sea
-
                 if (flag1 && valido && mayorQueCero && (long) data.get(data.size()-1) == nonce) {
-                    result.put("status", "Success"); 
+                    System.out.println("Se ha realizado con éxito la transmisión");
                     connect();
-                    result.put("sabanas", (long) data.get(0));
-                    result.put("camas", (long) data.get(1));
-                    result.put("mesas", (long) data.get(2));
-                    result.put("sillas", (long) data.get(3));
-                    result.put("minibar", (long) data.get(4));
                     insertData((long) data.get(0), (long) data.get(1), (long) data.get(2), (long) data.get(3), (long) data.get(4));
+                    kpi.addOne(true);
                 } else {
-                    result.put("status", "Failure");
+                    System.out.println("Ha fallado la transmisión");
+                    if(!flag1) {
+                        System.out.println("La firma no se ha verificado correctamente");
+                    } 
+                    if(!valido) {
+                        System.out.println("Los campos no poseen valores válidos");
+                    }
+                    if(!mayorQueCero) {
+                        System.out.println("Los campos poseen todos valores a 0");
+                    }
+                    if(!((long) data.get(data.size()-1) == nonce)) {
+                        System.out.println("El nonce no es válido");
+                    }
+                    kpi.addOne(false);
                 }
 
-                System.out.println(result.toJSONString());
-                serverSocket.writeLineToSocket(result.toJSONString());
                 serverSocket.closeClientSocket();
             }
         } catch (GenericSocketException gse) {

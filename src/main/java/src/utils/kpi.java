@@ -13,25 +13,24 @@ public class kpi {
 
     public static LinkedList<Double> list =  new LinkedList<Double>();
     //Se alamacena solo los dos meses anteriores
-    private static DateTime lastUpDate;
+    private static DateTime lastUpDate = new DateTime(0);
     //Lleva el recuento del mes actual
-    public static Integer NumeroTotal;
-    public static Integer NumeroPositivos;
+    public static Integer NumeroTotal = 0;
+    public static Integer NumeroPositivos = 0;
 
 
     public static void addOne(boolean pos){
         //Comprobamos diferencia de fechas
-        DateTime now=DateTime.now();
+        DateTime now=new DateTime(2018, 6, 1, 0, 0);
         Months diference=Months.monthsBetween(lastUpDate,now);
 
         if(diference.getMonths()!=0){
-        rotate();
+            rotate();
         }
         NumeroTotal++;
         if(pos)NumeroPositivos++;
         lastUpDate= now;
     }
-
 
     public static void Initialize(){
         list.add(0.0);
@@ -40,32 +39,39 @@ public class kpi {
         NumeroPositivos=0;
         NumeroTotal=0;
     }
-    private static void rotate(){
-    Double porcentaje=((double) NumeroPositivos)/NumeroTotal;
-    Integer value = getValue(porcentaje);
-    //write value on file
-    list.removeLast();
-    list.addFirst(porcentaje);
-    NumeroTotal=0;
-    NumeroPositivos=0;
-    }
 
+    private static void rotate(){
+        Double porcentaje=((double) NumeroPositivos)/NumeroTotal;
+        Integer value = getValue(porcentaje);
+        //write value on file
+        if(!list.isEmpty()) {
+            list.removeLast();
+        }
+        list.addFirst(porcentaje);
+        NumeroTotal=0;
+        NumeroPositivos=0;
+    }
 
     private static Integer getValue(double porcentaje){
         Integer res = null;
 
-        if(list.getLast()>porcentaje||list.getFirst()>porcentaje){
-            res= -1;
-            writeFile("-");
-
-        }else if(list.getLast()<porcentaje||list.getFirst()<porcentaje){
-            res=1;
-            writeFile("+");
-
-        }else {
-            res= 0;
+        if(list.isEmpty()) {
+            // Si está vacio, ponemos como base 0
+            res = 0;
             writeFile("0");
+        } else {
+            if(list.getLast() > porcentaje || list.getFirst() > porcentaje){
+                res= -1;
+                writeFile("-");
+            } else if(list.getLast()<porcentaje||list.getFirst()<porcentaje){
+                res=1;
+                writeFile("+");
+            } else {
+                res= 0;
+                writeFile("0");
+            }
         }
+        
         return res;
     }
     private static void writeFile(String value){
