@@ -21,7 +21,7 @@ public class kpi {
 
     public static void addOne(boolean pos){
         //Comprobamos diferencia de fechas
-        DateTime now=new DateTime(2018, 6, 1, 0, 0);
+        DateTime now=new DateTime();
         Months diference=Months.monthsBetween(lastUpDate,now);
 
         if(diference.getMonths()!=0){
